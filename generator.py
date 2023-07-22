@@ -8,16 +8,34 @@ fake = Faker("ru_RU")
 
 
 class Generator:
-    """Генератор файлов с данными."""
-    def __init__(self, name: str, format: str = 'xlxs',
-                 number_of_strings: int = 100):
-        self.name = name
-        self.format = format
-        self.number_of_strings = number_of_strings
-        self.file_name: str = self.name + '.' + self.format
+    """Генератор файлов с данными с функцией упаковщика."""
+    BYTES_IN_KB: int = 1024
+
+    def __init__(self):
+        self.file_formats = {'xlsx': 'xlsx', 'csv': 'csv'}
+        self.arc_formats = {'zip': 'zip', '7z': '7z'}
+
+    def run_generator(self):
+        """Создает файлы форматов xlsx и csv."""
+        """Просим пользователя ввести необходимые данные и проверяем их."""
+        print('Привет, давай сгенерируем файл с данными!')
+        self.name_file: str = input('Введи имя генерируемого файла: ')
+        if self.name_file == '':
+            raise ValueError('Необходимо ввести название файла.')
+        self.format_file: str = input('Введи формат генерируемого файла: ')
+        try:
+            self.format_file = self.file_formats[self.format_file]
+        except KeyError:
+            raise KeyError('Такого формата нет в базе')
+        self.number_of_strings = input('Введи количество строк данных: ')
+        try:
+            int(self.number_of_strings)
+        except ValueError:
+            raise ValueError('Необходимо ввести целое число')
+        self.full_file_name: str = self.name_file + '.' + self.format_file
+        # Создадим список с фейковыми данными.
         self.data: list = []
-        """Создадим список со строками информации."""
-        for row in range(self.number_of_strings):
+        for row in range(int(self.number_of_strings)):
             new_row = [fake.name(),
                        fake.city(),
                        fake.street_address(),
@@ -30,13 +48,11 @@ class Generator:
                        fake.company(),
                        fake.city()]
             self.data.append(new_row)
-
-    def run_generator(self):
-        """Создает файлы форматов xlsx и csv."""
-        if self.format == 'xlsx':
-            workbook = ex.Workbook(self.file_name)
+        # Создаем файл с данными из списка.
+        if self.format_file == 'xlsx':
+            workbook = ex.Workbook(self.full_file_name)
             worksheet = workbook.add_worksheet()
-            for row in range(self.number_of_strings):
+            for row in range(int(self.number_of_strings)):
                 if (row != 0) and (row % 65530 == 0):
                     worksheet = workbook.add_worksheet()
                 col: int = 0
@@ -45,31 +61,34 @@ class Generator:
                                     data_in_table_cell)
                     col += 1
             workbook.close()
-        elif self.format == 'csv':
-            with open(self.file_name, 'w') as f:
+        elif self.format_file == 'csv':
+            with open(self.full_file_name, 'w') as f:
                 writer = csv.writer(f)
                 for row in self.data:
                     writer.writerow(row)
-        print(f'Файл {self. file_name} создан')
-
-
-class Archivator:
-    BYTES_IN_KB: int = 1024
-
-    def __init__(self, file_name: str,
-                 arc_name: str,
-                 size_in_KB: int,
-                 arc_format: str = 'zip'):
-        self.file_name = file_name
-        self.arc_name = arc_name
-        self.size_in_KB = size_in_KB
-        self.arc_format = arc_format
-        self.archieve_name: str = self.arc_name + '.' + self.arc_format
+        print(f'Файл {self.full_file_name} создан')
 
     def make_archieve(self):
+        # Создает архив из файла.
+        # Просим пользователя ввести данные и проверяем их.
+        print('Теперь создадим архив нашего файла!')
+        self.arc_name = input('Введи имя архива или оставь это поле пустым: ')
+        if self.arc_name == '':
+            self.arc_name = f'archive_of_{self.name_file}'
+        self.arc_format = input('Введи формат архива: ')
+        try:
+            self.arc_format = self.arc_formats[self.arc_format]
+        except KeyError:
+            raise KeyError('Такого формата нет в базе')
+        self.archieve_name: str = self.arc_name + '.' + self.arc_format
+        self.archieve_size = input('Введи предельный размер тома архива: ')
+        try:
+            int(self.archieve_size)
+        except ValueError:
+            raise ValueError('Необходимо ввести целое число')
         # Cоздаем архив файла
         with zipfile.ZipFile(self.archieve_name, mode='w') as archive:
-            archive.write(self.file_name)
+            archive.write(self.full_file_name)
         # Разделяем архив на тома
         cur_vol: int = 1  # текущий номер тома
         written: int = 0  # сколько байт записали
@@ -78,8 +97,8 @@ class Archivator:
                 output_name = (f'{self.arc_name}{str(cur_vol)}'
                                f'.{self.arc_format}')
                 output = open(output_name, 'wb')
-                while written < (self.size_in_KB * self.BYTES_IN_KB):
-                    data = src.read(self.size_in_KB * self.BYTES_IN_KB)
+                while written < (int(self.archieve_size) * self.BYTES_IN_KB):
+                    data = src.read(int(self.archieve_size) * self.BYTES_IN_KB)
                     if data == b'':
                         break
                     output.write(data)
@@ -103,42 +122,16 @@ class Archivator:
                 os.remove(cur_name)
         print('Процесс архивирования завершен.')
 
+    def add_archieve_format(self, format: str):
+        # Добавляет новый формат архива.
+        self.arc_formats[format] = format
+
 
 def main():
-    print('Привет, давай сгенерируем файл с данными!')
-    name_file: str = input('Введи имя генерируемого файла: ')
-    if name_file == '':
-        raise ValueError('Необходимо ввести название файла.')
-    file_formats = {'xlsx': 'xlsx', 'csv': 'csv'}
-    format_file: str = input('Введи формат генерируемого файла: ')
-    try:
-        format_file = file_formats[format_file]
-    except KeyError:
-        raise KeyError('Такого формата нет в базе')
-    number_of_strings = input('Введи количество строк данных: ')
-    try:
-        int(number_of_strings)
-    except ValueError:
-        raise ValueError('Необходимо ввести целое число')
-    Generator(name_file, format_file, int(number_of_strings)).run_generator()
-    print('Теперь создадим архив нашего файла!')
-    arc_name = input('Введи имя архива или оставь это поле пустым: ')
-    if arc_name == '':
-        arc_name = f'archive_of_{name_file}'
-    arc_format = input('Введи формат архива: ')
-    arc_formats = {'zip': 'zip', '7z': '7z'}
-    try:
-        arc_format = arc_formats[arc_format]
-    except KeyError:
-        raise KeyError('Такого формата нет в базе')
-    size = input('Введи предельный размер тома архива: ')
-    try:
-        int(size)
-    except ValueError:
-        raise ValueError('Необходимо ввести целое число')
-    Archivator(name_file + '.' + format_file, arc_name,
-               int(size),
-               arc_format).make_archieve()
+    A = Generator()
+    A.add_archieve_format('gzip')
+    A.run_generator()
+    A.make_archieve()
 
 
 main()
