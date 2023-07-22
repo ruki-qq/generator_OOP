@@ -8,7 +8,7 @@ fake = Faker("ru_RU")
 
 
 class Generator:
-
+    """Генератор файлов с данными."""
     def __init__(self, name: str, format: str = 'xlxs',
                  number_of_strings: int = 100):
         self.name = name
@@ -16,6 +16,7 @@ class Generator:
         self.number_of_strings = number_of_strings
         self.file_name: str = self.name + '.' + self.format
         self.data: list = []
+        """Создадим список со строками информации."""
         for row in range(self.number_of_strings):
             new_row = [fake.name(),
                        fake.city(),
@@ -31,13 +32,17 @@ class Generator:
             self.data.append(new_row)
 
     def run_generator(self):
+        """Создает файлы форматов xlsx и csv."""
         if self.format == 'xlsx':
             workbook = ex.Workbook(self.file_name)
             worksheet = workbook.add_worksheet()
             for row in range(self.number_of_strings):
+                if (row != 0) and (row % 65530 == 0):
+                    worksheet = workbook.add_worksheet()
                 col: int = 0
                 for data_in_table_cell in self.data[row]:
-                    worksheet.write(row, col, data_in_table_cell)
+                    worksheet.write(row - 65530 * (row // 65530), col,
+                                    data_in_table_cell)
                     col += 1
             workbook.close()
         elif self.format == 'csv':
@@ -62,10 +67,10 @@ class Archivator:
         self.archieve_name: str = self.arc_name + '.' + self.arc_format
 
     def make_archieve(self):
-
+        # Cоздаем архив файла
         with zipfile.ZipFile(self.archieve_name, mode='w') as archive:
             archive.write(self.file_name)
-
+        # Разделяем архив на тома
         cur_vol: int = 1  # текущий номер тома
         written: int = 0  # сколько байт записали
         with open(self.archieve_name, 'rb') as src:
@@ -87,7 +92,15 @@ class Archivator:
                     continue
                 output.close()
                 break
+        # Удаляем исходный архив
         os.remove(self.archieve_name)
+        # Формируем один архив
+        with zipfile.ZipFile(self.archieve_name, mode='w') as archive:
+            for cur in range(1, cur_vol+1):
+                cur_name = (f'{self.arc_name}{str(cur)}'
+                            f'.{self.arc_format}')
+                archive.write(cur_name)
+                os.remove(cur_name)
         print('Процесс архивирования завершен.')
 
 
