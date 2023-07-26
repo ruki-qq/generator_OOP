@@ -1,10 +1,10 @@
-import xlsxwriter as ex #непонятное название переменной
+import xlsxwriter as ex  # непонятное название переменной
 from faker import Faker
 import csv
 import zipfile
 import os
 
-# ↑↑↑ Есть сторонние либы, но нет requirements.txt, 
+# ↑↑↑ Есть сторонние либы, но нет requirements.txt,
 # чтобы сразу все поставить, плюс несоблюден порядок импортов
 
 fake = Faker("ru_RU")
@@ -15,18 +15,17 @@ fake = Faker("ru_RU")
 
 
 class Generator:
-    
-    # ↑↑↑ Название класса недостаточно информативно, лучше указать, 
+    # ↑↑↑ Название класса недостаточно информативно, лучше указать,
     # что именно мы генерируем, например FakeDataGenerator полностью отразить суть
-    
+
     """Генератор файлов с данными с функцией упаковщика."""
     BYTES_IN_KB: int = 1024
 
     def __init__(self):
         self.file_formats = {'xlsx': 'xlsx', 'csv': 'csv'}
         self.arc_formats = {'zip': 'zip', '7z': '7z'}
-        
-        # ↑↑↑ Нужно использовать списки и проверять наличие 
+
+        # ↑↑↑ Нужно использовать списки и проверять наличие
         # через 'if elem in list:', плюс нет аннотации типов
 
     def run_generator(self):
@@ -47,16 +46,16 @@ class Generator:
             int(self.number_of_strings)
         except ValueError:
             raise ValueError('Необходимо ввести целое число')
-        
+
         # ↑↑↑ UI лучше валидировать, заставляя юзера вводить значение, пока оно нас
         # не удовлетворит, например через {while True} и {break}
 
         # ↑↑↑ Не нужно записывать в self значения, которые мы будем использовать
         # только в одном методе, после того как метод отработал, значения остаются в
         # экземпляре класса и тратят память впустую
-        
-        # ↑↑↑ Все, что выше в данном методе, относится к user интерфейсу, этот код 
-        # должен быть вынесен в отдельный класс в отдельном файле, а в run_generator 
+
+        # ↑↑↑ Все, что выше в данном методе, относится к user интерфейсу, этот код
+        # должен быть вынесен в отдельный класс в отдельном файле, а в run_generator
         # передаем уже все полученные значения как параметры - кода, который не относится к логике
         # метода и при этом его можно извлечь, быть в методе не должно
 
@@ -65,23 +64,24 @@ class Generator:
         self.data: list = []
         # ↑↑↑ Неполная аннотация типа
         for row in range(int(self.number_of_strings)):
-            new_row = [fake.name(),
-                       fake.city(),
-                       fake.street_address(),
-                       fake.postcode(),
-                       fake.job(),
-                       fake.phone_number(),
-                       fake.hostname(),
-                       fake.ascii_free_email(),
-                       fake.uri(),
-                       fake.company(),
-                       fake.city()]
+            new_row = [
+                fake.name(),
+                fake.city(),
+                fake.street_address(),
+                fake.postcode(),
+                fake.job(),
+                fake.phone_number(),
+                fake.hostname(),
+                fake.ascii_free_email(),
+                fake.uri(),
+                fake.company(),
+                fake.city(),
+            ]
             self.data.append(new_row)
 
         # ↑↑↑ Лучше разделить это на методы генерации списка и метод сбора сгенерированных данных
         # в список списков, потому что оба этих метода будут обладать реюзабельностью
         # (e.g. создать список из другого метода с генерацией данных, сделать несколько вариантов генерации)
-
 
         if self.format_file == 'xlsx':
             workbook = ex.Workbook(self.full_file_name)
@@ -91,17 +91,18 @@ class Generator:
             for row in range(int(self.number_of_strings)):
                 if (row != 0) and (row % 65530 == 0):
                     worksheet = workbook.add_worksheet()
-                
-            # ↑↑↑ Постоянная проверка на создание нового worksheet серьезно 
-            # замедляет цикл без причины, зная итоговое число строк мы можем 
-            # вычислить, сколько раз нам нужно создать worksheet для заданного лимита
+
+                # ↑↑↑ Постоянная проверка на создание нового worksheet серьезно
+                # замедляет цикл без причины, зная итоговое число строк мы можем
+                # вычислить, сколько раз нам нужно создать worksheet для заданного лимита
 
                 col: int = 0
                 for data_in_table_cell in self.data[row]:
-                    worksheet.write(row - 65530 * (row // 65530), col,
-                                    data_in_table_cell)
+                    worksheet.write(
+                        row - 65530 * (row // 65530), col, data_in_table_cell
+                    )
                     col += 1
-                # ↑↑↑ В этой библиотеке есть метод worksheet.write_row(), 
+                # ↑↑↑ В этой библиотеке есть метод worksheet.write_row(),
                 # который делает работу цикла data_in_table_cell в 1 строку
 
             workbook.close()
@@ -113,8 +114,10 @@ class Generator:
                     writer.writerow(row)
         print(f'Файл {self.full_file_name} создан')
 
-        # ↑↑↑ Создание файла с данными нужно вынести 
+        # ↑↑↑ Создание файла с данными нужно вынести
         # в отдельный класс-сохранялку файлов (в отдельном .py)
+        # Там можно определить класс Saver с пустым методом
+        # сохранения и от него отнаследовать SaverXLSX, SaverCSV
 
     def make_archieve(self):
         # Создает архив из файла.
@@ -143,9 +146,7 @@ class Generator:
             int(self.archieve_size)
         except ValueError:
             raise ValueError('Необходимо ввести целое число')
-        
-        
-        
+
         # ↑↑↑ Все то же самое, что говорилось про UI и валидацию выше
 
         # Cоздаем архив файла
@@ -155,13 +156,14 @@ class Generator:
         cur_vol: int = 1  # текущий номер тома
         written: int = 0  # сколько байт записали
 
-        # ↑↑↑ Давай переменным такие имена, чтобы 
+        # ↑↑↑ Давай переменным такие имена, чтобы
         # их назначение было понятно без комментов
-        
+
         with open(self.archieve_name, 'rb') as src:
             while True:
-                output_name = (f'{self.arc_name}{str(cur_vol)}'
-                               f'.{self.arc_format}')
+                output_name = (
+                    f'{self.arc_name}{str(cur_vol)}.{self.arc_format}'
+                )
                 # ↑↑↑ Нет аннотации типа
                 output = open(output_name, 'wb')
                 # ↑↑↑ Нет аннотации типа
@@ -184,9 +186,8 @@ class Generator:
         os.remove(self.archieve_name)
         # Формируем один архив
         with zipfile.ZipFile(self.archieve_name, mode='w') as archive:
-            for cur in range(1, cur_vol+1):
-                cur_name = (f'{self.arc_name}{str(cur)}'
-                            f'.{self.arc_format}')
+            for cur in range(1, cur_vol + 1):
+                cur_name = f'{self.arc_name}{str(cur)}.{self.arc_format}'
                 # ↑↑↑ Нет аннотации типа
                 archive.write(cur_name)
                 os.remove(cur_name)
